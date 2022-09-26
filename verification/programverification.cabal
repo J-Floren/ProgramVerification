@@ -41,7 +41,7 @@ library
   -- other-extensions:
 
   -- Other library packages from which modules are imported.
-  build-depends:       base ^>=4.12.0.0,
+  build-depends:       base   >= 4.10,
                         GCLparser
   
 
@@ -63,7 +63,7 @@ executable programverification
   -- other-extensions:     GCLInterpreter
 
   -- Other library packages from which modules are imported.
-  build-depends:        base ^>=4.12.0.0,
+  build-depends:        base   >= 4.10,
                         GCLparser
                         
 
