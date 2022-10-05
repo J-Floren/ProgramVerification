@@ -32,10 +32,6 @@ insert expr str (LitI i) = LitI i
 insert expr str (Parens e) = Parens (insert expr str e)
 insert expr str (OpNeg e) = OpNeg (Parens(insert expr str e))
 
-whileLoop :: Stmt -> Expr -> Expr
-whileLoop (While gaurd s) = 
--- Ii+1 = (g && wlp si Ii) || (-g && Q)
-
 main :: IO ()
 main = do
     p <- parseGCLfile path
