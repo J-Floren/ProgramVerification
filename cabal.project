@@ -1,5 +1,7 @@
 packages: ./gclparser/GCLparser.cabal ./verification/programverification.cabal ./z3/z3.cabal
 
 package z3
-    extra-include-dirs: D:/z3-binding/z3-4.11.2-x86-win/include
-    extra-lib-dirs: D:/z3-binding/z3-4.11.2-x86-win/bin
+    extra-include-dirs: D:/z3-binding/z3-4.8.14-x64-win/include
+    extra-lib-dirs: D:/z3-binding/z3-4.8.14-x64-win/bin
+                        
+    
