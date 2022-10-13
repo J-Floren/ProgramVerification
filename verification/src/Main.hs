@@ -4,6 +4,7 @@ import Data.Either
 import GCLParser.Parser
 import GCLParser.PrettyPrint
 import GCLParser.GCLDatatype
+import Z3.Monad
 
 path = "/Users/jessefloren/Documents/PV/ProgramVerification/gclparser/examples/easy.gcl"
 err = "failed"
