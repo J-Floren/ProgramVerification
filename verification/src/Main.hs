@@ -5,8 +5,9 @@ import GCLParser.Parser
 import GCLParser.GCLDatatype
 import TreeConverter 
 import Wlp
+import Evaluator
 
-path = "/Users/jessefloren/Documents/PV/ProgramVerification/gclparser/examples/temp.gcl"
+path = "C:/Users/Tristan/Desktop/Gitlab/ProgramVerification/gclparser/examples/temp.gcl"
 err = "failed"    
 
 getStmt :: Program -> Stmt
@@ -27,4 +28,12 @@ main = do
             print parseTree
             let wlps = getWlps parseTree
             print wlps
+            let z3Arr = mapM callEval wlps
+            a <- z3Arr
+            print a
+
+            -- print z3Arr
+            -- (res, info) <- callEval (head $ reverse wlps)
+            -- print res >> putStr "\n" >> putStr info 
+
 
