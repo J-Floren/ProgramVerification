@@ -1,5 +1,4 @@
 temp(a:[]int | y:int){
-   i := 1;
-   a[i] := 3;
-   assert a[i] = 3
+   while x < 3 do { x := x + 1 };
+   assert x = 3
 }
