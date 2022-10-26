@@ -1,9 +1,5 @@
-temp(x:int | y:int){
-   assume x < 2 ;
-   x := x+1 ;
-   while x<3 do{ x:=x+1 } ;
-   if ~(x=3) then {x:=x+1} else {skip} ;
-   assert x=3
+temp(a:[]int | y:int){
+   i := 1;
+   a[i] := 3;
+   assert a[i] = 3
 }
-
-

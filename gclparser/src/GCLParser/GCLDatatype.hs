@@ -63,7 +63,7 @@ instance Show Stmt where
     show (Assume condition)       = "Assume(" ++ show condition ++ ")"
     show (Assign var e)           = var ++ " := " ++ show e 
     show (DrefAssign var e)       = var ++ ".val := " ++ show e 
-    show (AAssign var i e)        = var ++ "[" ++ show i ++ "]" ++ " := " ++ show e
+    show (AAssign var i e)        = "AA " ++ var ++ "[" ++ show i ++ "]" ++ " := " ++ show e
     show (Seq s1 s2)              = "Seq(" ++ show s1 ++ ";" ++ show s2 ++ ")"
     show (IfThenElse gaurd s1 s2) = "if " ++ show gaurd ++ " then " ++ show s1 ++ " else " ++ show s2
     show (While gaurd s)          = "while " ++ show gaurd ++ " do {" ++ show s ++ "}"
@@ -136,7 +136,7 @@ instance Show Expr where
     show (Dereference u)            = u ++ ".val"
     show (Parens e)                 = "(" ++ show e ++ ")"
     show (ArrayElem var index)      = show var ++ "[" ++ show index ++ "]"
-    show (OpNeg expr)               = "~" ++ show expr
+    show (OpNeg expr)               = "~(" ++ show expr ++ ")"
     show (BinopExpr op e1 e2)       =  show e1 ++ " " ++ show op ++ " " ++ show e2 
     show (NewStore e)               = "new(" ++ show e ++ ")"    
     show (Forall var p)             = "forall " ++ var ++ ":: " ++ show p
