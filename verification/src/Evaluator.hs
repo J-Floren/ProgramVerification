@@ -1,10 +1,5 @@
 module Evaluator where
 
-import Control.Applicative
-import Control.Monad ( join )
-import Data.Maybe
-import qualified Data.Traversable as T
-import Debug.Trace
 import Z3.Monad
 import GCLParser.GCLDatatype
 
@@ -12,6 +7,9 @@ script :: Expr -> Z3 (Result)
 script xpr = do
     -- (BinopExpr And (BinopExpr LessThanEqual (Var "x") (LitI 0)) (BinopExpr GreaterThanEqual (Var "x") (LitI 10)))
     -- (BinopExpr Implication (BinopExpr Equal (Var "x") (LitI 5)) (BinopExpr Equal (Var "x") (LitI 10)))
+    -- (BinopExpr And (BinopExpr Equal (ArrayElem (Var "a") (LitI 1)) (LitI 0)) (BinopExpr Equal (ArrayElem (Var "a") (LitI 1)) (LitI 10)))
+    -- (BinopExpr GreaterThanEqual (ArrayElem (Var "a") (LitI 1)) (LitI 10)
+    -- let test = (BinopExpr And (BinopExpr Equal (ArrayElem (Var "a") (LitI 1)) (LitI 10)) (BinopExpr Equal (ArrayElem (Var "a") (LitI 1)) (LitI 10)))
     z3_expression <- makeZ3Formula xpr
     assert z3_expression
     (z3_result, _) <- getModel
@@ -33,6 +31,14 @@ makeZ3Formula (OpNeg x) = do
     z3x <- makeZ3Formula x
     mkNot z3x
 makeZ3Formula (Parens x) = makeZ3Formula x
+makeZ3Formula (ArrayElem (Var x) y) = do
+    intSort <- mkIntSort
+    arraySort <- mkArraySort intSort intSort
+    z3Name <- mkStringSymbol x
+    z3Array <- mkVar z3Name arraySort
+    z3Index <- makeZ3Formula y
+    mkSelect z3Array z3Index
+
 
 -- Should be implement Alias? Whats the purpose of it?
 binopToZ3 :: ( BinOp, AST, AST ) -> Z3 AST
@@ -51,10 +57,4 @@ binopToZ3 (Divide, ast1 , ast2) = mkDiv ast1 ast2
     
 callEval :: Expr -> IO (Result)
 callEval xpr = evalZ3 $ script xpr 
-
--- main = evalZ3 script >>= \(mbSol, info) ->
---     case (mbSol, info) of
---         (Unsat, _)  -> putStr "Not satisfiable:" >> putStr info
---         (Sat , _) -> putStr "Satisfiable :" >> putStr info
---         (Undef, _) -> error "Undefineable:" >> putStr info
 
