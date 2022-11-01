@@ -14,5 +14,5 @@ minind(a:[]int | r:int) {
       }
    } ;
    assert (0<= r) && (r < #a) &&
-          (exists i :: ((0<=i && (i< #a)) ==>  (a[i] >= a[r]))) 
+          (forall i :: ((0<=i && (i< #a)) ==>  (a[i] >= a[r]))) 
 }
