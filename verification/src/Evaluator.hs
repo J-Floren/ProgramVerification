@@ -6,7 +6,8 @@ import GCLParser.GCLDatatype
 script :: Expr -> [VarDeclaration] -> Z3 (Result, String)
 script xpr vars = do
     z3_expression <- makeZ3Formula xpr (createZ3Vars vars)
-    assert z3_expression
+    f <- mkNot z3_expression
+    assert f
     (z3_result, _) <- getModel
     z3_string <- solverToString
     return (z3_result, z3_string)
