@@ -45,13 +45,11 @@ main = do
             -- Create z3 vars
             let vars = getLocalDefs parseTree ++ input pr ++ output pr
 
+            prunedTree <- pruneBranches parseTree [] vars
+
             -- Wlp
-            let paths = getPaths parseTree
-            putStr "Creating wlps\n"
-            print paths
-            let wlps = (map (wlp) paths)
-            putStr "Mapping to Z3\n"
-            print wlps
+            let paths = getPaths prunedTree
+            let wlps = map wlp paths
             z3Arr <- mapM (\wlp -> callEval wlp vars) wlps 
             let results = checkSat z3Arr
             print (isValid results)
