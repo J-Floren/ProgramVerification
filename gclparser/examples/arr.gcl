@@ -2,5 +2,5 @@ arr(a:[]int | i:int){
     assume i=1 ; i:=i-1;
     a[i] := 0;
     a[i+1] := 1;
-    assert a[i] = 0;
+    assert a[i] = 0
 }

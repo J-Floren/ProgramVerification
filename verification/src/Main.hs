@@ -30,14 +30,14 @@ isValid [] = True
 isValid (Sat : xs) = False
 isValid (Unsat : xs) = isValid xs
 
-data EvalReturn = FAIL ([Stmt], String, Int, Int) | SUCCESS (Int, Int) 
+data EvalReturn = FAIL (Expr, [Stmt], String, Int, Int) | SUCCESS (Int, Int) 
 
 evalWlps :: [(Expr, [Stmt])] -> [VarDeclaration] -> Bool -> Int -> Int -> IO EvalReturn
 evalWlps [] _ _ count atoms = return (SUCCESS (count-1, atoms))
 evalWlps ((wlp, stmt) : xs) vars heuristics count atoms = do
   (res, info) <- callEval wlp vars heuristics
   let a = atoms + exprAtoms wlp
-  if res == Sat then return (FAIL (stmt, info, count, a)) else evalWlps xs vars heuristics (count+1) a
+  if res == Sat then return (FAIL (wlp, stmt, info, count, a)) else evalWlps xs vars heuristics (count+1) a
 
 main :: IO ()
 main = do
@@ -76,12 +76,13 @@ main = do
           putStrLn $ "Total paths: " ++ show (length paths)
           putStrLn $ "Evaluated paths: " ++ show c
           putStrLn $ "Evaluated atoms: " ++ show atoms
-        FAIL (path, info, count, atoms) -> do
+        FAIL (wlp, path, info, count, atoms) -> do
           printColor RED "INVALID PROGRAM"
           putStrLn $ "Total paths: " ++ show (length paths)
           putStrLn $ "Evaluated paths: " ++ show count
           putStrLn $ "Evaluated atoms: " ++ show atoms
-          putStrLn $ "Failed path: " ++ show path ++ "\n"
+          putStrLn $ "Failed path: " ++ show path
+          putStrLn $ "Failed wlp: " ++ show wlp ++ "\n"
           putStrLn "Counter Example: "
           putStrLn info
 

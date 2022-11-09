@@ -14,6 +14,7 @@ hasVar str (LitB b) = False
 hasVar str LitNull = False
 hasVar str (Parens e) = hasVar str e
 hasVar str (OpNeg e) = hasVar str e
+hasVar str (SizeOf e) = False
 
 insert :: Expr -> String -> Expr -> Expr
 insert expr str (BinopExpr op e1 e2) = BinopExpr op (insert expr str e1) (insert expr str e2)
@@ -26,13 +27,13 @@ insert expr str (Parens e) = Parens (insert expr str e)
 insert expr str (Cond g e1 e2) = Cond (insert expr str g) (insert expr str e1) (insert expr str e2)
 insert expr str (OpNeg e) = OpNeg (insert expr str e)
 insert expr str (SizeOf (Var v)) = SizeOf (Var v)
-insert expr str (Forall var e) = Forall var (if var == str then e else insert expr str e)
-insert expr str (Exists var e) = Exists var (if var == str then e else insert expr str e)
+insert expr str (Forall var e) = if str == var then Forall ("!" ++ var) (insert expr str (insert (Var ("!" ++ var)) var e)) else Forall var (insert expr str e)
+insert expr str (Exists var e) = if str == var then Exists ("!" ++ var) (insert expr str (insert (Var ("!" ++ var)) var e)) else Exists var (insert expr str e)
 
 ainsert :: Expr -> String -> Expr -> Expr -> Expr
 ainsert expr str i (BinopExpr op e1 e2) = BinopExpr op (ainsert expr str i e1) (ainsert expr str i e2)
 ainsert expr str i v@(Var str1) = v
-ainsert expr str i a@(ArrayElem c@(Var v) index) = if v == str then Cond (opAnd (opEqual i index) (opAnd (opLessThan (LitI 0) index) (opLessThan index (SizeOf c)))) expr a else a
+ainsert expr str i a@(ArrayElem c@(Var v) index) = if v == str then Cond (opEqual i index) expr a else a
 ainsert expr str i (LitI x) = LitI x
 ainsert expr str i (LitB x) = LitB x
 ainsert expr str i LitNull = LitNull
@@ -40,8 +41,8 @@ ainsert expr str i (Parens e) = Parens (ainsert expr str i e)
 ainsert expr str i (Cond g e1 e2) = Cond (ainsert expr str i g) (ainsert expr str i e1) (ainsert expr str i e2)
 ainsert expr str i (OpNeg e) = OpNeg (ainsert expr str i e)
 ainsert expr str i (SizeOf (Var v)) = SizeOf (Var v)
-ainsert expr str i (Forall var e) = Forall var (if hasVar var i then expr else ainsert expr str i e)
-ainsert expr str i (Exists var e) = Exists var (if hasVar var i then expr else ainsert expr str i e)
+ainsert expr str i (Forall var e) = if hasVar var i then Forall ("!" ++ var) (ainsert expr str i (insert (Var ("!" ++ var)) var e)) else Forall var (ainsert expr str i e)
+ainsert expr str i (Exists var e) = if hasVar var i then Exists ("!" ++ var) (ainsert expr str i (insert (Var ("!" ++ var)) var e)) else Exists var (ainsert expr str i e)
 ainsert _ _ _ expr = error (show expr)
 
 wlp :: [Stmt] -> Expr
@@ -57,18 +58,6 @@ wlp2 ((Assert expr) : xs) = opAnd expr (wlp xs)
 wlp2 ((Assume expr) : xs) = opAnd expr (wlp xs)
 wlp2 ((Assign str expr) : xs) = insert expr str (wlp xs)
 wlp2 ((AAssign str index expr) : xs) = ainsert expr str index (wlp xs)
-
-calcBinOp :: BinOp -> Expr -> Expr -> Expr
-calcBinOp Plus (LitI x) (LitI y) = LitI (x + y)
-calcBinOp Minus (LitI x) (LitI y) = LitI (x - y)
-calcBinOp Multiply (LitI x) (LitI y) = LitI (x * y)
-calcBinOp Divide (LitI x) (LitI y) = LitI (x `div` y)
-calcBinOp And (LitB x) (LitB y) = LitB (x && y)
-calcBinOp Or (LitB x) (LitB y) = LitB (x || y)
-calcBinOp Equal (LitB x) (LitB y) = LitB (x == y)
-calcBinOp Minus (BinopExpr Minus x (LitI y)) (LitI z) = BinopExpr Minus x (LitI (y + z))
-calcBinOp Plus (BinopExpr Plus x (LitI y)) (LitI z) = BinopExpr Plus x (LitI (y + z))
-calcBinOp op x y = BinopExpr op x y
 
 evalExpr :: [Stmt] -> [VarDeclaration] -> IO Bool
 evalExpr s v = do
@@ -89,3 +78,4 @@ exprAtoms (OpNeg e) = exprAtoms e
 exprAtoms (Cond cond e1 e2) = exprAtoms e2
 exprAtoms LitB {} = 1
 exprAtoms _ = 0
+
