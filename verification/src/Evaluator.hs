@@ -3,10 +3,11 @@ module Evaluator where
 import Z3.Monad
 import GCLParser.GCLDatatype
 
-script :: Expr -> [VarDeclaration] -> Z3 (Result, String)
-script xpr vars = do
+script :: Expr -> [VarDeclaration] -> Bool -> Z3 (Result, String)
+script xpr vars heuristics = do
     z3_expression <- makeZ3Formula xpr (createZ3Vars vars)
-    f <- mkNot z3_expression
+    simple_expr <- simplify z3_expression
+    f <- mkNot (if heuristics then simple_expr else z3_expression)
     assert f
     (z3_result, _) <- getModel
     z3_string <- solverToString
@@ -88,6 +89,6 @@ binopToZ3 (Plus, ast1 , ast2) = mkAdd [ast1, ast2]
 binopToZ3 (Multiply, ast1 , ast2) = mkMul [ast1, ast2]
 binopToZ3 (Divide, ast1 , ast2) = mkDiv ast1 ast2
     
-callEval :: Expr -> [VarDeclaration] -> IO (Result, String)
-callEval xpr vars = evalZ3 $ script xpr vars
+callEval :: Expr -> [VarDeclaration] -> Bool -> IO (Result, String)
+callEval xpr vars heuristics = evalZ3 $ script xpr vars heuristics
 
