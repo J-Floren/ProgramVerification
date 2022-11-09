@@ -9,9 +9,14 @@ script xpr vars heuristics = do
     simple_expr <- simplify z3_expression
     f <- mkNot (if heuristics then simple_expr else z3_expression)
     assert f
-    (z3_result, _) <- getModel
-    z3_string <- solverToString
-    return (z3_result, z3_string)
+    (z3_result, z3_maybe_model) <- getModel
+
+    case z3_maybe_model of 
+        Nothing -> do
+            return (z3_result, "Empty model")
+        Just a -> do 
+            str <- modelToString a
+            return (z3_result, str)
 
 -- Choose to not implement: Fail, Dereference, NewStore, LitNull    
 makeZ3Formula :: Expr -> [(String, Z3 AST)] -> Z3 AST

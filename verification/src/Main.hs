@@ -30,11 +30,14 @@ isValid [] = True
 isValid (Sat : xs) = False
 isValid (Unsat : xs) = isValid xs
 
-evalWlps :: [(Expr, [Stmt])] -> [VarDeclaration] -> Bool -> Int -> IO (Maybe ([Stmt], String, Int))
-evalWlps [] _ _ _ = return Nothing
-evalWlps ((wlp, stmt) : xs) vars heuristics c = do
+data EvalReturn = OK ([Stmt], String, Int, Int) | ERR (Int, Int) 
+
+evalWlps :: [(Expr, [Stmt])] -> [VarDeclaration] -> Bool -> Int -> Int -> IO EvalReturn
+evalWlps [] _ _ count atoms = return (ERR (count-1, atoms))
+evalWlps ((wlp, stmt) : xs) vars heuristics count atoms = do
   (res, info) <- callEval wlp vars heuristics
-  if res == Sat then return (Just (stmt, info, c)) else evalWlps xs vars heuristics (c+1)
+  let a = atoms + exprAtoms wlp
+  if res == Sat then return (OK (stmt, info, count, a)) else evalWlps xs vars heuristics (count+1) a
 
 main :: IO ()
 main = do
@@ -64,15 +67,25 @@ main = do
       let paths = getPaths (if heuristics then prunedTree else parseTree)
       let wlps = map (\x -> (wlp x, x)) paths
 
+      res <- evalWlps wlps vars heuristics 1 0
+
       printColor CYAN "Output:"
-      res <- evalWlps wlps vars heuristics 1
       case res of
-        Nothing -> printColor GREEN "VALID PROGRAM"
-        Just (path, info, count) -> do
+        ERR (c, atoms) -> do
+          printColor GREEN "VALID PROGRAM"
+          putStrLn $ "Total paths: " ++ show (length paths)
+          putStrLn $ "Evaluated paths: " ++ show c
+          putStrLn $ "Evaluated atoms: " ++ show atoms
+        OK (path, info, count, atoms) -> do
           printColor RED "INVALID PROGRAM"
-          printColor DULL ("Failed path (" ++ show count ++ "): " ++ show path)
-          printColor DULL info
+          putStrLn $ "Total paths: " ++ show (length paths)
+          putStrLn $ "Evaluated paths: " ++ show count
+          putStrLn $ "Evaluated atoms: " ++ show atoms
+          putStrLn $ "Failed path: " ++ show path ++ "\n"
+          putStrLn "Counter Example: "
+          putStrLn info
 
       end <- getCPUTime
       let diff = fromIntegral (end - start) / (10 ^ 12)
+
       printf "Computation time: %0.3f sec\n" (diff :: Double)

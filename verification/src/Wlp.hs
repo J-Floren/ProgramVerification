@@ -32,7 +32,7 @@ insert expr str (Exists var e) = Exists var (if var == str then e else insert ex
 ainsert :: Expr -> String -> Expr -> Expr -> Expr
 ainsert expr str i (BinopExpr op e1 e2) = BinopExpr op (ainsert expr str i e1) (ainsert expr str i e2)
 ainsert expr str i v@(Var str1) = v
-ainsert expr str i a@(ArrayElem (Var v) index) = if v == str then Cond (opEqual i index) expr a else a
+ainsert expr str i a@(ArrayElem c@(Var v) index) = if v == str then Cond (opAnd (opEqual i index) (opAnd (opLessThan (LitI 0) index) (opLessThan index (SizeOf c)))) expr a else a
 ainsert expr str i (LitI x) = LitI x
 ainsert expr str i (LitB x) = LitB x
 ainsert expr str i LitNull = LitNull
@@ -77,3 +77,15 @@ evalExpr s v = do
   case res of
     Sat -> return True
     Unsat -> return False
+
+
+exprAtoms :: Expr -> Int
+exprAtoms (BinopExpr Implication e1 e2) = exprAtoms e1 + exprAtoms e2
+exprAtoms (BinopExpr And e1 e2) = exprAtoms e1 + exprAtoms e2
+exprAtoms (BinopExpr Or e1 e2) = exprAtoms e1 + exprAtoms e2
+exprAtoms (BinopExpr _ e1 e2) = 1
+exprAtoms (Parens e) = exprAtoms e
+exprAtoms (OpNeg e) = exprAtoms e
+exprAtoms (Cond cond e1 e2) = exprAtoms e2
+exprAtoms LitB {} = 1
+exprAtoms _ = 0
