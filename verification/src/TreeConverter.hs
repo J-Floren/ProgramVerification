@@ -31,16 +31,20 @@ treeConverter (While g s1) q k = Branch g (treeConverter s1 (treeConverter (Whil
 treeConverter s@(Assume _) q k = Linear s q
 treeConverter Skip q _ = q
 
-getLocalDefs :: Tree -> [VarDeclaration]
-getLocalDefs (Local def q) = def ++ getLocalDefs q
-getLocalDefs (Linear _ q) = getLocalDefs q
-getLocalDefs (Branch _ q1 q2) = getLocalDefs q1 ++ getLocalDefs q2
-getLocalDefs _ = []
+getLocalVars :: Stmt -> [VarDeclaration]
+getLocalVars (Block def s1) = def ++ getLocalVars s1
+getLocalVars (IfThenElse _ s1 s2) = getLocalVars s1 ++ getLocalVars s2
+getLocalVars (While _ s1 ) = getLocalVars s1
+getLocalVars (Seq s1 s2) = getLocalVars s1 ++ getLocalVars s2
+getLocalVars _ = []
 
 makeBranch :: Tree -> [Stmt] -> [VarDeclaration] -> Bool -> Bool -> IO Tree
-makeBranch t p v True True = do return t
-makeBranch (Branch _ q1 _) p v True _ = pruneBranches q1 p v
-makeBranch (Branch _ _ q2) p v _ True = pruneBranches q2 p v
+makeBranch (Branch g q1 q2) p v True True = do 
+  x1 <- pruneBranches q1 p v
+  x2 <- pruneBranches q2 p v
+  return (Branch g x1 x2)
+makeBranch (Branch _ q1 _) p v True _ = do pruneBranches q1 p v
+makeBranch (Branch _ _ q2) p v _ True = do pruneBranches q2 p v
 
 pruneBranches :: Tree -> [Stmt] -> [VarDeclaration] -> IO Tree
 pruneBranches t@End _ v = return t
@@ -56,14 +60,23 @@ pruneBranches t@(Branch expr _ _) p v = do
   rightAlways <- evalExpr (p ++ [Assert (OpNeg expr)]) v
   makeBranch t p v leftAlways rightAlways
 
-getPaths :: Tree -> [[Stmt]]
-getPaths End = []
-getPaths (Q s) = [[s]]
-getPaths (Local def q) = getPaths q
-getPaths (Linear s q) = map (s :) (getPaths q)
-getPaths (Branch (OpNeg expr) q1 q2) =
-  map (Assume expr :) (getPaths q2)
-    ++ map (Assume (OpNeg expr) :) (getPaths q1)
-getPaths (Branch expr q1 q2) =
-  map (Assume (OpNeg expr) :) (getPaths q2)
-    ++ map (Assume expr :) (getPaths q1)
+isArrayType :: Type -> Bool
+isArrayType (AType _) = True
+isArrayType _ = False
+
+isArray :: [VarDeclaration] -> String -> Bool
+isArray [] _ = False
+isArray ((VarDeclaration str t):xs) var = if var == str then isArrayType t else isArray xs var
+
+getPaths :: Tree -> [VarDeclaration] -> [[Stmt]]
+getPaths End vars = []
+getPaths (Q s) vars = [[s]]
+getPaths (Local def q) vars = getPaths q vars
+getPaths (Linear s@(Assign a (Var b)) q) vars = if isArray vars a then map ([s,Assign ("#" ++ a) (Var ("#" ++ b))]++) (getPaths q vars) else map (s :) (getPaths q vars)
+getPaths (Linear s q) vars = map (s :) (getPaths q vars)
+getPaths (Branch (OpNeg expr) q1 q2) vars =
+  map (Assume expr :) (getPaths q2 vars)
+    ++ map (Assume (OpNeg expr) :) (getPaths q1 vars)
+getPaths (Branch expr q1 q2) vars =
+  map (Assume (OpNeg expr) :) (getPaths q2 vars)
+    ++ map (Assume expr :) (getPaths q1 vars)

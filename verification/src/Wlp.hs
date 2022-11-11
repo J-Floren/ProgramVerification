@@ -26,7 +26,7 @@ insert expr str LitNull = LitNull
 insert expr str (Parens e) = Parens (insert expr str e)
 insert expr str (Cond g e1 e2) = Cond (insert expr str g) (insert expr str e1) (insert expr str e2)
 insert expr str (OpNeg e) = OpNeg (insert expr str e)
-insert expr str (SizeOf (Var v)) = SizeOf (Var v)
+insert expr str (SizeOf (Var v)) = if str == "#" ++ v then expr else SizeOf (Var v)
 insert expr str (Forall var e) = if str == var then Forall ("!" ++ var) (insert expr str (insert (Var ("!" ++ var)) var e)) else Forall var (insert expr str e)
 insert expr str (Exists var e) = if str == var then Exists ("!" ++ var) (insert expr str (insert (Var ("!" ++ var)) var e)) else Exists var (insert expr str e)
 
@@ -54,7 +54,7 @@ wlp ((AAssign str index expr) : xs) = ainsert expr str index (wlp xs)
 
 wlp2 :: [Stmt] -> Expr
 wlp2 [Assert expr] = expr
-wlp2 ((Assert expr) : xs) = opAnd expr (wlp xs)
+wlp2 ((Assert expr) : xs) = wlp xs
 wlp2 ((Assume expr) : xs) = opAnd expr (wlp xs)
 wlp2 ((Assign str expr) : xs) = insert expr str (wlp xs)
 wlp2 ((AAssign str index expr) : xs) = ainsert expr str index (wlp xs)

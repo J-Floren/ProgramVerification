@@ -14,13 +14,12 @@ path x = "C:/Users/Floren/ProgramVerification/gclparser/examples/" ++ x ++ ".gcl
 
 err = "failed"
 
-data Color = RED | GREEN | CYAN | DULL
+data Color = RED | GREEN | CYAN 
 
 printColor :: Color -> String -> IO ()
 printColor RED s = putStrLn $ "\ESC[91m" ++ s ++ "\ESC[0m"
 printColor CYAN s = putStrLn $ "\ESC[36m" ++ s ++ "\ESC[0m"
 printColor GREEN s = putStrLn $ "\ESC[32m" ++ s ++ "\ESC[0m"
-printColor DULL s = putStrLn $ "\ESC[38;5;7m" ++ s ++ "\ESC[0m"
 
 checkSat :: [(Result, String)] -> [Result]
 checkSat = foldr (\x -> (++) [fst x]) []
@@ -55,16 +54,18 @@ main = do
     Right pr -> do
       start <- getCPUTime
 
+      let localVars = getLocalVars (stmt pr)
+
       -- Tree
       let parseTree = buildTree (stmt pr) k
 
       -- Create z3 vars
-      let vars = getLocalDefs parseTree ++ input pr ++ output pr
+      let vars = localVars ++ input pr ++ output pr
 
       prunedTree <- pruneBranches parseTree [] vars
 
       -- Wlp
-      let paths = getPaths (if heuristics then prunedTree else parseTree)
+      let paths = getPaths (if heuristics then prunedTree else parseTree) vars
       let wlps = map (\x -> (wlp x, x)) paths
 
       res <- evalWlps wlps vars heuristics 1 0
@@ -73,12 +74,13 @@ main = do
       case res of
         SUCCESS (c, atoms) -> do
           printColor GREEN "VALID PROGRAM"
+          print ""
           putStrLn $ "Total paths: " ++ show (length paths)
           putStrLn $ "Evaluated paths: " ++ show c
           putStrLn $ "Evaluated atoms: " ++ show atoms
         FAIL (wlp, path, info, count, atoms) -> do
           printColor RED "INVALID PROGRAM"
-          putStrLn $ "Total paths: " ++ show (length paths)
+          putStrLn ("Total paths: " ++ show (length paths))
           putStrLn $ "Evaluated paths: " ++ show count
           putStrLn $ "Evaluated atoms: " ++ show atoms
           putStrLn $ "Failed path: " ++ show path
