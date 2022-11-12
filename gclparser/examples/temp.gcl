@@ -1,0 +1,4 @@
+temp(x:int | y:int){
+   assume ~(x = y);
+   assert x = y
+}

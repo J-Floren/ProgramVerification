@@ -59,12 +59,12 @@ data Stmt
 
 instance Show Stmt where
     show Skip                     = "skip"
-    show (Assert condition)       = "assert " ++ show condition
-    show (Assume condition)       = "assume " ++ show condition
+    show (Assert condition)       = "Assert(" ++ show condition ++ ")"
+    show (Assume condition)       = "Assume(" ++ show condition ++ ")"
     show (Assign var e)           = var ++ " := " ++ show e 
     show (DrefAssign var e)       = var ++ ".val := " ++ show e 
     show (AAssign var i e)        = var ++ "[" ++ show i ++ "]" ++ " := " ++ show e
-    show (Seq s1 s2)              = show s1 ++ ";" ++ show s2 
+    show (Seq s1 s2)              = "Seq(" ++ show s1 ++ ";" ++ show s2 ++ ")"
     show (IfThenElse gaurd s1 s2) = "if " ++ show gaurd ++ " then " ++ show s1 ++ " else " ++ show s2
     show (While gaurd s)          = "while " ++ show gaurd ++ " do {" ++ show s ++ "}"
     show (Block vars s)           = "var " ++ show vars ++ " {" ++ show s ++ "}"
@@ -91,6 +91,7 @@ data Expr
     | Cond               Expr   Expr   Expr
     | NewStore           Expr
     | Dereference        String
+    | Fail               Expr
     deriving (Eq) 
     
 data BinOp = And | Or | Implication 
@@ -135,14 +136,15 @@ instance Show Expr where
     show (Dereference u)            = u ++ ".val"
     show (Parens e)                 = "(" ++ show e ++ ")"
     show (ArrayElem var index)      = show var ++ "[" ++ show index ++ "]"
-    show (OpNeg expr)               = "~" ++ show expr
-    show (BinopExpr op e1 e2)       = "(" ++ show e1 ++ " " ++ show op ++ " " ++ show e2 ++ ")"
+    show (OpNeg expr)               = "~(" ++ show expr ++ ")"
+    show (BinopExpr op e1 e2)       =  show e1 ++ " " ++ show op ++ " " ++ show e2 
     show (NewStore e)               = "new(" ++ show e ++ ")"    
     show (Forall var p)             = "forall " ++ var ++ ":: " ++ show p
     show (Exists var p)             = "exists " ++ var ++ ":: " ++ show p
     show (SizeOf var)               = "#" ++ show var
     show (RepBy var i val)          = show var ++ "(" ++ show i ++ " repby " ++ show val ++ ")"
     show (Cond g e1 e2)             = "(" ++ show g ++ " -> " ++ show e1 ++ " | " ++ show e2 ++ ")"
+    show (Fail e1)                  = "Fail(" ++ show e1 ++ ")"
     
 instance Show BinOp where
     show And = "&&"
