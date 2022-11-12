@@ -38,27 +38,27 @@ getLocalVars (While _ s1 ) = getLocalVars s1
 getLocalVars (Seq s1 s2) = getLocalVars s1 ++ getLocalVars s2
 getLocalVars _ = []
 
-makeBranch :: Tree -> [Stmt] -> [VarDeclaration] -> Bool -> Bool -> IO Tree
-makeBranch (Branch g q1 q2) p v True True = do 
-  x1 <- pruneBranches q1 p v
-  x2 <- pruneBranches q2 p v
+makeBranch :: Tree -> [Stmt] -> [VarDeclaration] -> Int -> Bool -> Bool -> IO Tree
+makeBranch (Branch g q1 q2) p v n True True = do 
+  x1 <- pruneBranches q1 p v n
+  x2 <- pruneBranches q2 p v n
   return (Branch g x1 x2)
-makeBranch (Branch _ q1 _) p v True _ = do pruneBranches q1 p v
-makeBranch (Branch _ _ q2) p v _ True = do pruneBranches q2 p v
+makeBranch (Branch _ q1 _) p v n True _ = do pruneBranches q1 p v n
+makeBranch (Branch _ _ q2) p v n _ True = do pruneBranches q2 p v n
 
-pruneBranches :: Tree -> [Stmt] -> [VarDeclaration] -> IO Tree
-pruneBranches t@End _ v = return t
-pruneBranches t@(Q s) p v = return t
-pruneBranches (Local def q) p v = do
-  t <- pruneBranches q p (def ++ v)
+pruneBranches :: Tree -> [Stmt] -> [VarDeclaration] -> Int -> IO Tree
+pruneBranches t@End _ v _ = return t
+pruneBranches t@(Q s) p v _ = return t
+pruneBranches (Local def q) p v n = do
+  t <- pruneBranches q p (def ++ v) n
   return (Local def t)
-pruneBranches (Linear s q) p v = do
-  t <- pruneBranches q (p ++ [s]) v
+pruneBranches (Linear s q) p v n = do
+  t <- pruneBranches q (p ++ [s]) v n
   return (Linear s t)
-pruneBranches t@(Branch expr _ _) p v = do
-  leftAlways <- evalExpr (p ++ [Assert expr]) v
-  rightAlways <- evalExpr (p ++ [Assert (OpNeg expr)]) v
-  makeBranch t p v leftAlways rightAlways
+pruneBranches t@(Branch expr _ _) p v n = do
+  leftAlways <- evalExpr (p ++ [Assert expr]) v n
+  rightAlways <- evalExpr (p ++ [Assert (OpNeg expr)]) v n
+  makeBranch t p v n leftAlways rightAlways 
 
 isArrayType :: Type -> Bool
 isArrayType (AType _) = True

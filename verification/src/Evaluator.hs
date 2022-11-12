@@ -3,9 +3,9 @@ module Evaluator where
 import Z3.Monad
 import GCLParser.GCLDatatype
 
-script :: Expr -> [VarDeclaration] -> Bool -> Z3 (Result, String)
-script xpr vars heuristics = do
-    z3_expression <- makeZ3Formula xpr (createZ3Vars vars)
+script :: Expr -> [VarDeclaration] -> Bool -> Int -> Z3 (Result, String)
+script xpr vars heuristics n = do
+    z3_expression <- makeZ3Formula xpr (createZ3Vars vars) n
     simple_expr <- simplify z3_expression
     f <- mkNot (if heuristics then simple_expr else z3_expression)
     assert f
@@ -19,42 +19,43 @@ script xpr vars heuristics = do
             return (z3_result, str)
 
 -- Choose to not implement: Fail, Dereference, NewStore, LitNull    
-makeZ3Formula :: Expr -> [(String, Z3 AST)] -> Z3 AST
-makeZ3Formula (BinopExpr op e1 e2) vars = do
-    ast1 <- makeZ3Formula e1 vars    
-    ast2 <- makeZ3Formula e2 vars
+makeZ3Formula :: Expr -> [(String, Z3 AST)] -> Int -> Z3 AST
+makeZ3Formula (BinopExpr op e1 e2) vars n = do
+    ast1 <- makeZ3Formula e1 vars n   
+    ast2 <- makeZ3Formula e2 vars n
     binopToZ3 (op, ast1, ast2)
-makeZ3Formula (LitI x) _ = mkInteger $ toInteger x
-makeZ3Formula (LitB x) _ = mkBool x
-makeZ3Formula (Var x) vars = getZ3Var x vars
-makeZ3Formula (OpNeg x) vars = do
-    z3x <- makeZ3Formula x vars
+makeZ3Formula (LitI x) _ _ = mkInteger $ toInteger x
+makeZ3Formula (LitB x) _ _= mkBool x
+makeZ3Formula (Var "N") vars n = mkInteger $ toInteger n
+makeZ3Formula (Var x) vars _ = getZ3Var x vars
+makeZ3Formula (OpNeg x) vars n = do
+    z3x <- makeZ3Formula x vars n
     mkNot z3x
-makeZ3Formula (Parens x) vars = makeZ3Formula x vars
-makeZ3Formula (ArrayElem (Var x) y) vars = do
+makeZ3Formula (Parens x) vars n = makeZ3Formula x vars n
+makeZ3Formula (ArrayElem (Var x) y) vars n = do
     z3Array <- getZ3Var x vars
-    z3Index <- makeZ3Formula y vars
+    z3Index <- makeZ3Formula y vars n
     mkSelect z3Array z3Index
-makeZ3Formula (Forall str xpr) vars = do
+makeZ3Formula (Forall str xpr) vars n = do
     forallSym <- mkStringSymbol ("!" ++ str)
     let quantifier = mkIntVar forallSym
     q <- quantifier
     quantifier' <- toApp q
     let forallVars = ([(str, quantifier)] ++ vars)
-    mkForallConst [] [quantifier'] =<< makeZ3Formula xpr forallVars
-makeZ3Formula (Exists str xpr) vars = do
+    mkForallConst [] [quantifier'] =<< makeZ3Formula xpr forallVars n
+makeZ3Formula (Exists str xpr) vars n = do
     existsSym <- mkStringSymbol ("!" ++ str)
     let quantifier = mkIntVar existsSym
     q <- quantifier
     quantifier' <- toApp q
     let existsVars = ([(str, quantifier)] ++ vars)
-    mkExistsConst [] [quantifier'] =<< makeZ3Formula xpr existsVars
-makeZ3Formula (Cond g e1 e2) vars = do
-    trueValue <- makeZ3Formula e1 vars
-    falseValue <- makeZ3Formula e2 vars
-    condition <- makeZ3Formula g vars
+    mkExistsConst [] [quantifier'] =<< makeZ3Formula xpr existsVars n
+makeZ3Formula (Cond g e1 e2) vars n = do
+    trueValue <- makeZ3Formula e1 vars n
+    falseValue <- makeZ3Formula e2 vars n
+    condition <- makeZ3Formula g vars n
     mkIte condition trueValue falseValue
-makeZ3Formula (SizeOf (Var v)) vars = getZ3Var ("#" ++ v) vars
+makeZ3Formula (SizeOf (Var v)) vars _ = getZ3Var ("#" ++ v) vars
 
 -- Ref type not implemented?
 typeToAst :: (String, Type) -> (String, Z3 AST)
@@ -94,6 +95,6 @@ binopToZ3 (Plus, ast1 , ast2) = mkAdd [ast1, ast2]
 binopToZ3 (Multiply, ast1 , ast2) = mkMul [ast1, ast2]
 binopToZ3 (Divide, ast1 , ast2) = mkDiv ast1 ast2
     
-callEval :: Expr -> [VarDeclaration] -> Bool -> IO (Result, String)
-callEval xpr vars heuristics = evalZ3 $ script xpr vars heuristics
+callEval :: Expr -> [VarDeclaration] -> Bool -> Int -> IO (Result, String)
+callEval xpr vars heuristics n = evalZ3 $ script xpr vars heuristics n
 

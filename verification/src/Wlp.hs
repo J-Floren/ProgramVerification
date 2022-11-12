@@ -19,7 +19,7 @@ hasVar str (SizeOf e) = False
 insert :: Expr -> String -> Expr -> Expr
 insert expr str (BinopExpr op e1 e2) = BinopExpr op (insert expr str e1) (insert expr str e2)
 insert expr str v@(Var str1) = if str == str1 then expr else v
-insert expr str (ArrayElem v index) = ArrayElem v (insert expr str index)
+insert expr str (ArrayElem v@(Var str1) index) = ArrayElem (if str1 == str then expr else v) (insert expr str index) 
 insert expr str (LitI i) = LitI i
 insert expr str (LitB b) = LitB b
 insert expr str LitNull = LitNull
@@ -59,10 +59,10 @@ wlp2 ((Assume expr) : xs) = opAnd expr (wlp xs)
 wlp2 ((Assign str expr) : xs) = insert expr str (wlp xs)
 wlp2 ((AAssign str index expr) : xs) = ainsert expr str index (wlp xs)
 
-evalExpr :: [Stmt] -> [VarDeclaration] -> IO Bool
-evalExpr s v = do
+evalExpr :: [Stmt] -> [VarDeclaration] -> Int -> IO Bool
+evalExpr s v n = do
   let expr = wlp2 s
-  (res, info) <- callEval (OpNeg expr) v True
+  (res, info) <- callEval (OpNeg expr) v True n
   case res of
     Sat -> return True
     Unsat -> return False
