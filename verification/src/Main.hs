@@ -55,7 +55,7 @@ main = do
   printColor CYAN "Mutate? (y/n):"
   m <- getLine
   let mutate = "y" == m
-  if mutate then do
+  if mutate && "benchmark" `isPrefixOf` f then do
     let range = [2..10]
     let x = map (verifyMutations f k heuristics) range
     let path = "C:/Users/Floren/ProgramVerification/output/" ++ (let repl '/' = '_'; repl x = x in  map repl f) ++ "_" ++ h ++ "mutation.csv"
@@ -72,6 +72,7 @@ main = do
     writeOutput outputFile x
     hClose outputFile
   else do
+    if mutate then putStrLn "Can't mutate non benchmark files" else putStrLn "Start Verification: "
     x <- verifyProgram f k heuristics 0 
     putStrLn "Finished"
 
